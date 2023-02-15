@@ -1,0 +1,30 @@
+[mysql]
+
+no_auto_rehash
+max_allowed_packet             = 32M
+prompt                         = '\u@\h [\d]> '                      # 'user@host [schema]> '
+default_character_set          = utf8
+
+[mysqld]
+sql_mode = "STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION"
+# Connection and Thread variables
+
+port                           = 3306
+socket                         = /var/run/mysqld/mysql.sock          # Use mysqld.sock on Ubuntu, conflicts with AppArmor otherwise
+
+max_allowed_packet             = 32M
+default_storage_engine         = InnoDB
+
+# character_set_server           = utf8                                # If you prefer utf8
+# collation_server               = utf8_general_ci
+
+
+max_connections                = 505                                 # Values < 1000 are typically good
+max_user_connections           = 500                                 # Limit one specific user/application
+thread_cache_size              = 505                                 # Up to max_connections makes sense
+
+
+# Query Cache
+
+query_cache_type               = 1                                   # Set to 0 to avoid global QC Mutex
+query_cache_size               = 32M                                 # Avoid too big (> 128M) QC because of QC clean-up lock!

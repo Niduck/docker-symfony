@@ -1,0 +1,54 @@
+version: '2'
+services:
+  db:
+    network_mode: "host"
+    user: "${PHP_UID}:${PHP_GID}"
+    image: 'mysql:8.0-debian'
+    volumes:
+      - './.cache/mysql/db:/var/lib/mysql'
+      - './builds/mysql/mysql.cnf:/etc/mysql/conf.d/mysql.cnf'
+      - './builds/mysql/shared:/etc/mysql/dumps'
+    env_file:
+      - ./.env
+    environment:
+      MYSQL_ROOT_PASSWORD: '${MYSQL_ROOT_PASSWORD}'
+      MYSQL_DATABASE: '${MYSQL_DATABASE}'
+      MYSQL_USER: '${MYSQL_USER}'
+      MYSQL_PASSWORD: '${MYSQL_PASSWORD}'
+      MYSQL_ALLOW_EMPTY_PASSWORD: '${MYSQL_ALLOW_EMPTY_PASSWORD}'
+  php:
+    network_mode: "host"
+    user: "${PHP_UID}:${PHP_GID}"
+    build:
+      context: builds/php/8.2-fpm
+      args:
+        - 'SYMFONY_ENV=${SYMFONY_ENV}'
+        - 'SYMFONY_WORKDIR=${SYMFONY_WORKDIR}'
+        - 'PHP_UID=${PHP_UID}'
+        - 'PHP_GID=${PHP_GID}'
+        - 'PHP_UNAME=${PHP_UNAME}'
+        - 'PHP_GNAME=${PHP_GNAME}'
+        - 'NODE_VERSION=${PHP_NODE_VERSION}'
+    env_file:
+      - ./.env
+    volumes:
+      - '${SYMFONY_APP_PATH}:/home/${PHP_UNAME}/workdir'
+  nginx:
+    image: 'nginx:stable'
+    env_file:
+      - ./.env
+    network_mode: "host"
+    volumes_from:
+      - php
+    volumes:
+      - './builds/nginx/templates/${SYMFONY_ENV}.template:/etc/nginx/conf.d/env.template'
+      - './builds/nginx/nginx.conf:/nginx.conf:ro'
+      - './.cache/logs:/var/log/nginx'
+    environment:
+      - 'VIRTUAL_HOST=${SYMFONY_APP_HOST}'
+      - 'NGINX_HOST=${SYMFONY_APP_HOST}'
+      - 'PHP_UNAME=${PHP_UNAME}'
+      - 'SYMFONY_PUBLIC_DIR=${SYMFONY_PUBLIC_DIR}'
+    command: '/bin/bash -c "envsubst ''$$NGINX_HOST,$$SYMFONY_PUBLIC_DIR,$$PHP_UNAME'' < /etc/nginx/conf.d/env.template > /etc/nginx/conf.d/default.conf && nginx -c /nginx.conf"'
+networks:
+  dockernetwork: null
